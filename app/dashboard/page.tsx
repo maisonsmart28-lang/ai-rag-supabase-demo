@@ -6,7 +6,9 @@ const uploadMessages: Record<string, string> = {
   ok: "Document ingested successfully.",
   missing: "Choose a file before uploading.",
   "too-large": "File is too large. Maximum size is 1 MB.",
-  unsupported: "Only TXT and Markdown files are supported in this step.",
+  unsupported: "Only TXT, Markdown and PDF files are supported.",
+  "too-many-pages": "PDF is too long. Maximum is 50 pages.",
+  "pdf-error": "The PDF could not be parsed.",
   empty: "The selected file contains no usable text.",
 };
 
@@ -33,9 +35,9 @@ export default async function Dashboard({
 
     <section className="panel">
       <h2>Ingest a document</h2>
-      <p className="muted">TXT or Markdown, maximum 1 MB. Text is extracted and stored as RLS-protected chunks.</p>
+      <p className="muted">TXT, Markdown or PDF, maximum 1 MB. PDFs are limited to 50 pages. Extracted text is stored as RLS-protected chunks.</p>
       <form action={ingestDocument} className="uploadForm">
-        <input name="file" type="file" accept=".txt,.md,.markdown,text/plain,text/markdown" required />
+        <input name="file" type="file" accept=".txt,.md,.markdown,.pdf,text/plain,text/markdown,application/pdf" required />
         <button type="submit">Upload and chunk</button>
       </form>
       {params.upload && <p className={params.upload === "ok" ? "success" : "error"}>
