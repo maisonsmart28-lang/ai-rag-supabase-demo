@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { logout } from "./actions";
+import { createDocument, logout } from "./actions";
 
 export default async function Dashboard() {
   const supabase = await createClient();
@@ -20,6 +20,13 @@ export default async function Dashboard() {
     <section className="panel">
       <h2>Your documents</h2>
       <p className="muted">RLS restricts this list to the authenticated owner.</p>
+      <form action={createDocument}>
+        <label>
+          Document name
+          <input name="name" type="text" maxLength={255} required placeholder="Private document - User A" />
+        </label>
+        <button type="submit">Create test document</button>
+      </form>
       {!documents?.length ? <div className="empty">No documents yet. Upload comes next.</div> :
         <div className="docList">{documents.map((d) =>
           <article key={d.id}><strong>{d.name}</strong><span>{d.source_type}</span></article>
