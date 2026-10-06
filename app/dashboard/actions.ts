@@ -51,7 +51,6 @@ export async function ingestDocument(formData: FormData) {
       if (pdf.numPages > MAX_PDF_PAGES) redirect("/dashboard?upload=too-many-pages");
       const extracted = await extractText(pdf, { mergePages: true });
       text = String(extracted.text).trim();
-      await pdf.destroy();
     } catch (error) {
       if (error && typeof error === "object" && "digest" in error) throw error;
       redirect("/dashboard?upload=pdf-error");
