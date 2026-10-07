@@ -2,7 +2,8 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const model = new Supabase.ai.Session("gte-small");
 
-Deno.serve(async (req: Request) => {
+export default {
+  fetch: async (req: Request) => {
   if (req.method !== "POST") {
     return Response.json({ error: "Method not allowed" }, { status: 405 });
   }
@@ -32,4 +33,5 @@ Deno.serve(async (req: Request) => {
     console.error("Embedding generation failed", error);
     return Response.json({ error: "Embedding generation failed." }, { status: 500 });
   }
-});
+  },
+};
