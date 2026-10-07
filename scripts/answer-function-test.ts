@@ -17,12 +17,17 @@ async function main() {
     );
   }
 
-  // Copy validated env values into narrowed constants so TypeScript keeps them as strings\n  // inside the nested retry function.\n  const testEmail = email;\n  const testPassword = password;\n  const supabase = createClient(url, key);
+  const testEmail: string = email;
+  const testPassword: string = password;
+  const supabase = createClient(url, key);
 
   async function signInWithRetry() {
     let lastError: unknown;
     for (let attempt = 1; attempt <= 3; attempt += 1) {
-      const { data, error } = await supabase.auth.signInWithPassword({ email: testEmail, password: testPassword });
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: testEmail,
+        password: testPassword,
+      });
       if (!error && data.user) return data.user;
       lastError = error;
       if (attempt < 3) {
