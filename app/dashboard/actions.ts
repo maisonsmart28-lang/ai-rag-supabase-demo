@@ -14,7 +14,6 @@ function chunkText(input: string) {
   const text = input.replace(/\r\n/g, "\n").replace(/[ \t]+/g, " ").trim();
   const chunks: string[] = [];
   let start = 0;
-
   while (start < text.length) {
     let end = Math.min(start + CHUNK_SIZE, text.length);
     if (end < text.length) {
@@ -23,13 +22,11 @@ function chunkText(input: string) {
       const candidate = Math.max(paragraphBreak, sentenceBreak);
       if (candidate > start + Math.floor(CHUNK_SIZE * 0.6)) end = candidate + 1;
     }
-
     const chunk = text.slice(start, end).trim();
     if (chunk) chunks.push(chunk);
     if (end >= text.length) break;
     start = Math.max(end - CHUNK_OVERLAP, start + 1);
   }
-
   return chunks;
 }
 
@@ -82,7 +79,6 @@ export async function ingestDocument(formData: FormData) {
     const { data: embeddingData, error: embeddingError } = await supabase.functions.invoke("embed", {
       body: { input: content },
     });
-
     if (
       embeddingError ||
       !embeddingData ||
@@ -92,19 +88,10 @@ export async function ingestDocument(formData: FormData) {
       await supabase.from("rag_documents").delete().eq("id", document.id);
       throw new Error("Unable to generate document embeddings.");
     }
-
-    embeddedChunks.push({
-      document_id: document.id,
-      chunk_index,
-      content,
-      embedding: embeddingData.embedding,
-    });
+    embeddedChunks.push({ document_id: document.id, chunk_index, content, embedding: embeddingData.embedding });
   }
 
-  const { error: chunksError } = await supabase
-    .from("rag_document_chunks")
-    .insert(embeddedChunks);
-
+  const { error: chunksError } = await supabase.from("rag_document_chunks").insert(embeddedChunks);
   if (chunksError) {
     await supabase.from("rag_documents").delete().eq("id", document.id);
     throw new Error("Unable to store document chunks.");
@@ -114,53 +101,44 @@ export async function ingestDocument(formData: FormData) {
   redirect(`/dashboard?upload=ok&chunks=${chunks.length}`);
 }
 
-
-export async function searchKnowledgeBase(formData: FormData) {
+export async function askKnowledgeBase(formData: FormData) {
   const question = String(formData.get("question") ?? "").trim();
-  if (!question) redirect("/dashboard?search=missing");
+  if (!question) redirect("/dashboard?ask=missing");
+  if (question.length > 2000) redirect("/dashboard?ask=too-long");
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: embeddingData, error: embeddingError } =
-    await supabase.functions.invoke("embed", { body: { input: question } });
-
-  if (
-    embeddingError ||
-    !embeddingData ||
-    !Array.isArray(embeddingData.embedding) ||
-    embeddingData.embedding.length !== 384
-  ) {
-    redirect("/dashboard?search=embedding-error");
-  }
-
-  const { data: matches, error: matchError } = await supabase.rpc("match_rag_chunks", {
-    query_embedding: embeddingData.embedding,
-    match_threshold: 0.55,
-    match_count: 5,
+  const { data, error } = await supabase.functions.invoke("answer", {
+    body: { question },
   });
 
-  if (matchError) redirect("/dashboard?search=search-error");
+  if (error || !data || typeof data.answer !== "string") {
+    redirect("/dashboard?ask=answer-error");
+  }
 
-  const payload = Buffer.from(JSON.stringify(matches ?? []), "utf8").toString("base64url");
-  redirect("/dashboard?search=ok&matches=" + encodeURIComponent(payload));
+  const payload = Buffer.from(
+    JSON.stringify({
+      question,
+      answer: data.answer,
+      grounded: data.grounded === true,
+      sources: Array.isArray(data.sources) ? data.sources : [],
+    }),
+    "utf8",
+  ).toString("base64url");
+
+  redirect("/dashboard?ask=ok&result=" + encodeURIComponent(payload));
 }
 
 export async function createDocument(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   if (!name) return;
-
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
-
-  const { error } = await supabase
-    .from("rag_documents")
-    .insert({ name, source_type: "text" });
-
+  const { error } = await supabase.from("rag_documents").insert({ name, source_type: "text" });
   if (error) throw new Error("Unable to create document.");
-
   revalidatePath("/dashboard");
 }
 
