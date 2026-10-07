@@ -54,8 +54,8 @@ export default async function Dashboard({
         <input name="question" type="text" placeholder="Ask a question about your documents..." required />
         <button type="submit">Search knowledge</button>
       </form>
-      {params.search === "ok" && !searchMatches.length && <div className="empty">No relevant passages found.</div>}
-      {searchMatches.length > 0 && <div className="docList">{searchMatches.map((match: { document_name: string; chunk_index: number; content: string; similarity: number }, index: number) => <article key={match.document_name + match.chunk_index + index}><strong>{match.document_name} · chunk {match.chunk_index + 1}</strong><span>Similarity {Number(match.similarity).toFixed(3)}</span><p>{match.content}</p></article>)}</div>}
+      {params.search === "missing" && <p className="error">Enter a question.</p>}\n      {params.search === "embedding-error" && <p className="error">Unable to generate the question embedding.</p>}\n      {params.search === "search-error" && <p className="error">Semantic search failed.</p>}\n      {params.search === "ok" && !searchMatches.length && <div className="empty">No relevant passages found in your documents.</div>}
+      {searchMatches.length > 0 && <div className="searchResults">{searchMatches.map((match: { document_name: string; chunk_index: number; content: string; similarity: number }, index: number) => <article className="resultCard" key={match.document_name + match.chunk_index + index}><div className="resultMeta"><strong>{match.document_name} · chunk {match.chunk_index + 1}</strong><span>Similarity {Number(match.similarity).toFixed(3)}</span></div><p>{match.content}</p></article>)}</div>}
     </section>
 
     <section className="panel">
