@@ -114,6 +114,39 @@ export async function ingestDocument(formData: FormData) {
   redirect(`/dashboard?upload=ok&chunks=${chunks.length}`);
 }
 
+
+export async function searchKnowledgeBase(formData: FormData) {
+  const question = String(formData.get("question") ?? "").trim();
+  if (!question) redirect("/dashboard?search=missing");
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { data: embeddingData, error: embeddingError } =
+    await supabase.functions.invoke("embed", { body: { input: question } });
+
+  if (
+    embeddingError ||
+    !embeddingData ||
+    !Array.isArray(embeddingData.embedding) ||
+    embeddingData.embedding.length !== 384
+  ) {
+    redirect("/dashboard?search=embedding-error");
+  }
+
+  const { data: matches, error: matchError } = await supabase.rpc("match_rag_chunks", {
+    query_embedding: embeddingData.embedding,
+    match_threshold: 0.55,
+    match_count: 5,
+  });
+
+  if (matchError) redirect("/dashboard?search=search-error");
+
+  const payload = Buffer.from(JSON.stringify(matches ?? []), "utf8").toString("base64url");
+  redirect("/dashboard?search=ok&matches=" + encodeURIComponent(payload));
+}
+
 export async function createDocument(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   if (!name) return;
