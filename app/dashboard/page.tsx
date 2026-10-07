@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { ingestDocument, logout } from "./actions";
+import { ingestDocument, logout, searchKnowledgeBase } from "./actions";
 
 const uploadMessages: Record<string, string> = {
   ok: "Document ingested successfully.",
@@ -15,9 +15,10 @@ const uploadMessages: Record<string, string> = {
 export default async function Dashboard({
   searchParams,
 }: {
-  searchParams: Promise<{ upload?: string; chunks?: string }>;
+  searchParams: Promise<{ upload?: string; chunks?: string; search?: string; matches?: string }>;
 }) {
   const params = await searchParams;
+  const searchMatches = params.search === "ok" && params.matches ? JSON.parse(Buffer.from(params.matches, "base64url").toString("utf8")) : [];
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
@@ -46,7 +47,7 @@ export default async function Dashboard({
       </p>}
     </section>
 
-    <section className="panel">
+    <section className="panel">\n      <h2>Ask your knowledge base</h2>\n      <p className="muted">Semantic retrieval is restricted by your RLS permissions.</p>\n      <form action={searchKnowledgeBase} className="uploadForm">\n        <input name="question" type="text" placeholder="Ask a question about your documents..." required />\n        <button type="submit">Search knowledge</button>\n      </form>\n      {params.search === "ok" && !searchMatches.length && <div className="empty">No relevant passages found.</div>}\n      {searchMatches.length > 0 && <div className="docList">{searchMatches.map((match: { document_name: string; chunk_index: number; content: string; similarity: number }, index: number) => <article key={match.document_name + match.chunk_index + index}><strong>{match.document_name} · chunk {match.chunk_index + 1}</strong><span>Similarity {Number(match.similarity).toFixed(3)}</span><p>{match.content}</p></article>)}</div>}\n    </section>\n\n    <section className="panel">
       <h2>Your documents</h2>
       <p className="muted">RLS restricts this list and its chunks to the authenticated owner.</p>
       {!documents?.length ? <div className="empty">No documents yet.</div> :
