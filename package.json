@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "test:rls-chunks": "tsx scripts/rls-chunk-isolation-test.ts",
     "test:embed": "tsx scripts/embedding-function-test.ts",
-    "test:vector-rls": "tsx scripts/vector-search-rls-test.ts"
+    "test:vector-rls": "tsx scripts/vector-search-rls-test.ts",
+    "test:answer": "tsx scripts/answer-function-test.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",
