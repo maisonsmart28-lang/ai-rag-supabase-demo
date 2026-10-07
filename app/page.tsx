@@ -1,3 +1,18 @@
+import Link from "next/link";
+
 export default function Home() {
-  return <main className="shell"><section className="hero"><p className="eyebrow">SECURE AI RAG</p><h1>Ask your documents.<br/>Keep every tenant isolated.</h1><p className="lead">Next.js + Supabase Auth + PostgreSQL + pgvector. Retrieval is protected by Row Level Security.</p><div className="cards"><article><b>01</b><h2>Upload</h2><p>Private documents owned by the authenticated user.</p></article><article><b>02</b><h2>Retrieve</h2><p>384-dimensional semantic search through pgvector.</p></article><article><b>03</b><h2>Answer</h2><p>Grounded answers with citations to retrieved sources.</p></article></div><p className="status">Foundation ready · authentication and ingestion next</p></section></main>;
+  return <main className="shell">
+    <section className="hero">
+      <p className="eyebrow">SECURE AI RAG</p>
+      <h1>Ask your documents.<br/>Keep every tenant isolated.</h1>
+      <p className="lead">Next.js + Supabase Auth + PostgreSQL + pgvector. Retrieval is protected by Row Level Security.</p>
+      <div className="heroActions"><Link className="primaryLink" href="/login">Open knowledge base</Link></div>
+      <div className="cards">
+        <article><b>01</b><h2>Upload</h2><p>Private documents owned by the authenticated user.</p></article>
+        <article><b>02</b><h2>Retrieve</h2><p>384-dimensional semantic search through pgvector.</p></article>
+        <article><b>03</b><h2>Answer</h2><p>Grounded answers with citations to retrieved sources.</p></article>
+      </div>
+      <p className="status">Authentication · document ingestion · embeddings · semantic retrieval · tenant isolation verified</p>
+    </section>
+  </main>;
 }
