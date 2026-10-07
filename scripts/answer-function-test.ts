@@ -17,12 +17,12 @@ async function main() {
     );
   }
 
-  const supabase = createClient(url, key);
+  // Copy validated env values into narrowed constants so TypeScript keeps them as strings\n  // inside the nested retry function.\n  const testEmail = email;\n  const testPassword = password;\n  const supabase = createClient(url, key);
 
   async function signInWithRetry() {
     let lastError: unknown;
     for (let attempt = 1; attempt <= 3; attempt += 1) {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email: testEmail, password: testPassword });
       if (!error && data.user) return data.user;
       lastError = error;
       if (attempt < 3) {
@@ -57,10 +57,10 @@ async function main() {
     ? data.sources.map((source: { document_name?: string }) => source.document_name)
     : [];
 
-  if (email.toLowerCase().includes("tenant-a") && sourceNames.includes("test-b.pdf")) {
+  if (testEmail.toLowerCase().includes("tenant-a") && sourceNames.includes("test-b.pdf")) {
     throw new Error("RLS FAILURE: User A received a protected User B source.");
   }
-  if (email.toLowerCase().includes("tenant-b") && sourceNames.includes("test-a.txt")) {
+  if (testEmail.toLowerCase().includes("tenant-b") && sourceNames.includes("test-a.txt")) {
     throw new Error("RLS FAILURE: User B received a protected User A source.");
   }
 
