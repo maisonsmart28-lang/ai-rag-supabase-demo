@@ -60,15 +60,32 @@ async function main() {
     console.log("-", row.document_name, "chunk", row.chunk_index, "similarity", Number(row.similarity).toFixed(4));
   }
 
-  const forbidden = rows.filter((row: any) =>
-    ["test-b.pdf", "user-b-rag-pdf-test.pdf", "user-b-rag-test.txt"].includes(row.document_name),
-  );
+  const isUserA = authUser.email === "tenant-a@rls-demo.test";
+  const isUserB = authUser.email === "tenant-b@rls-demo.test";
 
-  if (forbidden.length > 0) {
-    throw new Error("FAIL: authenticated user can retrieve User B vector chunks.");
+  if (!isUserA && !isUserB) {
+    throw new Error("This harness only supports the controlled User A/User B test accounts.");
   }
 
-  console.log("PASS: vector search returned no User B protected chunks.");
+  const expectedDocuments = isUserA ? ["test-a.txt"] : ["test-b.pdf"];
+  const forbiddenDocuments = isUserA
+    ? ["test-b.pdf", "user-b-rag-pdf-test.pdf", "user-b-rag-test.txt"]
+    : ["test-a.txt"];
+
+  const expected = rows.filter((row: any) => expectedDocuments.includes(row.document_name));
+  const forbidden = rows.filter((row: any) => forbiddenDocuments.includes(row.document_name));
+
+  if (expected.length === 0) {
+    throw new Error(`FAIL: ${authUser.email} did not retrieve its own expected vector document.`);
+  }
+
+  if (forbidden.length > 0) {
+    throw new Error(`FAIL: ${authUser.email} retrieved another user's protected vector chunks.`);
+  }
+
+  console.log(
+    `PASS: ${authUser.email} retrieved own vector content and no protected cross-user chunks.`,
+  );
   await supabase.auth.signOut();
 }
 
