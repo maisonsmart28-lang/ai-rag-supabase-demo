@@ -132,7 +132,10 @@ Be concise and factual.`;
       }
 
       const groq = await groqResponse.json();
-      const answer = groq?.choices?.[0]?.message?.content?.trim();
+      const rawAnswer = groq?.choices?.[0]?.message?.content?.trim();
+      const answer = typeof rawAnswer === "string"
+        ? rawAnswer.replaceAll("【", "[").replaceAll("】", "]").replaceAll("**", "")
+        : "";
       if (!answer) {
         return Response.json({ error: "The language model returned no answer." }, { status: 502 });
       }
