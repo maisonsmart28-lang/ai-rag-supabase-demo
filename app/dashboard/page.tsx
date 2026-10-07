@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { ingestDocument, logout, searchKnowledgeBase } from "./actions";
+import { askKnowledgeBase, ingestDocument, logout } from "./actions";
 
 const uploadMessages: Record<string, string> = {
   ok: "Document ingested successfully.",
@@ -12,13 +12,44 @@ const uploadMessages: Record<string, string> = {
   empty: "The selected file contains no usable text.",
 };
 
+type AnswerSource = {
+  citation: number;
+  document_id: string;
+  document_name: string;
+  chunk_index: number;
+  similarity: number;
+};
+
+type AnswerResult = {
+  question: string;
+  answer: string;
+  grounded: boolean;
+  sources: AnswerSource[];
+};
+
+function decodeAnswerResult(value?: string): AnswerResult | null {
+  if (!value) return null;
+  try {
+    const parsed = JSON.parse(Buffer.from(value, "base64url").toString("utf8"));
+    if (!parsed || typeof parsed.question !== "string" || typeof parsed.answer !== "string") return null;
+    return {
+      question: parsed.question,
+      answer: parsed.answer,
+      grounded: parsed.grounded === true,
+      sources: Array.isArray(parsed.sources) ? parsed.sources : [],
+    };
+  } catch {
+    return null;
+  }
+}
+
 export default async function Dashboard({
   searchParams,
 }: {
-  searchParams: Promise<{ upload?: string; chunks?: string; search?: string; matches?: string }>;
+  searchParams: Promise<{ upload?: string; chunks?: string; ask?: string; result?: string }>;
 }) {
   const params = await searchParams;
-  const searchMatches = params.search === "ok" && params.matches ? JSON.parse(Buffer.from(params.matches, "base64url").toString("utf8")) : [];
+  const answerResult = params.ask === "ok" ? decodeAnswerResult(params.result) : null;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
@@ -49,13 +80,29 @@ export default async function Dashboard({
 
     <section className="panel">
       <h2>Ask your knowledge base</h2>
-      <p className="muted">Semantic retrieval is restricted by your RLS permissions.</p>
-      <form action={searchKnowledgeBase} className="uploadForm">
-        <input name="question" type="text" placeholder="Ask a question about your documents..." required />
-        <button type="submit">Search knowledge</button>
+      <p className="muted">Answers are generated only from passages your authenticated account can retrieve through RLS.</p>
+      <form action={askKnowledgeBase} className="searchForm">
+        <input className="questionInput" name="question" type="text" placeholder="Ask a question about your documents..." maxLength={2000} required />
+        <button type="submit">Ask AI</button>
       </form>
-      {params.search === "missing" && <p className="error">Enter a question.</p>}\n      {params.search === "embedding-error" && <p className="error">Unable to generate the question embedding.</p>}\n      {params.search === "search-error" && <p className="error">Semantic search failed.</p>}\n      {params.search === "ok" && !searchMatches.length && <div className="empty">No relevant passages found in your documents.</div>}
-      {searchMatches.length > 0 && <div className="searchResults">{searchMatches.map((match: { document_name: string; chunk_index: number; content: string; similarity: number }, index: number) => <article className="resultCard" key={match.document_name + match.chunk_index + index}><div className="resultMeta"><strong>{match.document_name} · chunk {match.chunk_index + 1}</strong><span>Similarity {Number(match.similarity).toFixed(3)}</span></div><p>{match.content}</p></article>)}</div>}
+
+      {params.ask === "missing" && <p className="error">Enter a question.</p>}
+      {params.ask === "too-long" && <p className="error">Question is too long.</p>}
+      {params.ask === "answer-error" && <p className="error">Unable to generate a grounded answer.</p>}
+      {params.ask === "ok" && !answerResult && <p className="error">The answer result could not be displayed.</p>}
+
+      {answerResult && <div className="answerBlock">
+        <p className="answerQuestion">{answerResult.question}</p>
+        <div className="answerText">{answerResult.answer}</div>
+        <p className="groundingStatus">{answerResult.grounded ? "Grounded in your private knowledge base" : "Insufficient source evidence"}</p>
+        {answerResult.sources.length > 0 && <div className="sourceList">
+          <h3>Sources</h3>
+          {answerResult.sources.map((source) => <article className="sourceCard" key={source.citation + source.document_id + source.chunk_index}>
+            <strong>[{source.citation}] {source.document_name}</strong>
+            <span>chunk {source.chunk_index + 1} · similarity {Number(source.similarity).toFixed(3)}</span>
+          </article>)}
+        </div>}
+      </div>}
     </section>
 
     <section className="panel">
