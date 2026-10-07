@@ -76,13 +76,34 @@ export async function ingestDocument(formData: FormData) {
 
   if (documentError || !document) throw new Error("Unable to create document.");
 
-  const { error: chunksError } = await supabase
-    .from("rag_document_chunks")
-    .insert(chunks.map((content, chunk_index) => ({
+  const embeddedChunks = [];
+  for (let chunk_index = 0; chunk_index < chunks.length; chunk_index += 1) {
+    const content = chunks[chunk_index];
+    const { data: embeddingData, error: embeddingError } = await supabase.functions.invoke("embed", {
+      body: { input: content },
+    });
+
+    if (
+      embeddingError ||
+      !embeddingData ||
+      !Array.isArray(embeddingData.embedding) ||
+      embeddingData.embedding.length !== 384
+    ) {
+      await supabase.from("rag_documents").delete().eq("id", document.id);
+      throw new Error("Unable to generate document embeddings.");
+    }
+
+    embeddedChunks.push({
       document_id: document.id,
       chunk_index,
       content,
-    })));
+      embedding: embeddingData.embedding,
+    });
+  }
+
+  const { error: chunksError } = await supabase
+    .from("rag_document_chunks")
+    .insert(embeddedChunks);
 
   if (chunksError) {
     await supabase.from("rag_documents").delete().eq("id", document.id);
