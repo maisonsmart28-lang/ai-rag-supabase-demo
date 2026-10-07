@@ -6,14 +6,19 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test:rls-chunks": "tsx scripts/rls-chunk-isolation-test.ts",
+    "test:embed": "tsx scripts/embedding-function-test.ts",
+    "test:vector-rls": "tsx scripts/vector-search-rls-test.ts",
+    "test:answer": "tsx scripts/answer-function-test.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.57.4",
     "next": "^15.5.27",
     "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react-dom": "^19.1.1",
+    "unpdf": "^1.8.1"
   },
   "devDependencies": {
     "@types/node": "^24.5.2",
@@ -21,7 +26,8 @@
     "@types/react-dom": "^19.1.9",
     "eslint": "^9.36.0",
     "eslint-config-next": "^15.5.7",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "tsx": "^4.20.5"
   },
   "overrides": {
     "next": {
