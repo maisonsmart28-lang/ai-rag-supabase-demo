@@ -12,10 +12,32 @@ async function main() {
   if (!url || !key || !email || !password) throw new Error("Missing Supabase/RLS test environment variables.");
 
   const supabase = createClient(url, key, { auth: { persistSession: false } });
-  const { data: auth, error: authError } = await supabase.auth.signInWithPassword({ email, password });
-  if (authError || !auth.user) throw authError ?? new Error("Authentication failed.");
+  let authUser: { email?: string } | null = null;
+  let lastAuthError: unknown = null;
 
-  console.log("Authenticated as:", auth.user.email);
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    const { data: auth, error: authError } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (!authError && auth.user) {
+      authUser = auth.user;
+      break;
+    }
+
+    lastAuthError = authError;
+    const isRetryableNetworkError =
+      Boolean(authError) &&
+      (authError as { status?: number; name?: string }).status === 0 &&
+      (authError as { name?: string }).name === "AuthRetryableFetchError";
+
+    if (!isRetryableNetworkError || attempt === 3) break;
+
+    console.warn(`Transient auth network failure (attempt ${attempt}/3); retrying...`);
+    await new Promise((resolve) => setTimeout(resolve, attempt * 1000));
+  }
+
+  if (!authUser) throw lastAuthError ?? new Error("Authentication failed.");
+
+  console.log("Authenticated as:", authUser.email);
 
   const query = "blue fleet private maintenance vehicle";
   const { data: embeddingData, error: embeddingError } = await supabase.functions.invoke("embed", {
