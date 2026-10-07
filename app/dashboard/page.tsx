@@ -47,7 +47,18 @@ export default async function Dashboard({
       </p>}
     </section>
 
-    <section className="panel">\n      <h2>Ask your knowledge base</h2>\n      <p className="muted">Semantic retrieval is restricted by your RLS permissions.</p>\n      <form action={searchKnowledgeBase} className="uploadForm">\n        <input name="question" type="text" placeholder="Ask a question about your documents..." required />\n        <button type="submit">Search knowledge</button>\n      </form>\n      {params.search === "ok" && !searchMatches.length && <div className="empty">No relevant passages found.</div>}\n      {searchMatches.length > 0 && <div className="docList">{searchMatches.map((match: { document_name: string; chunk_index: number; content: string; similarity: number }, index: number) => <article key={match.document_name + match.chunk_index + index}><strong>{match.document_name} · chunk {match.chunk_index + 1}</strong><span>Similarity {Number(match.similarity).toFixed(3)}</span><p>{match.content}</p></article>)}</div>}\n    </section>\n\n    <section className="panel">
+    <section className="panel">
+      <h2>Ask your knowledge base</h2>
+      <p className="muted">Semantic retrieval is restricted by your RLS permissions.</p>
+      <form action={searchKnowledgeBase} className="uploadForm">
+        <input name="question" type="text" placeholder="Ask a question about your documents..." required />
+        <button type="submit">Search knowledge</button>
+      </form>
+      {params.search === "ok" && !searchMatches.length && <div className="empty">No relevant passages found.</div>}
+      {searchMatches.length > 0 && <div className="docList">{searchMatches.map((match: { document_name: string; chunk_index: number; content: string; similarity: number }, index: number) => <article key={match.document_name + match.chunk_index + index}><strong>{match.document_name} · chunk {match.chunk_index + 1}</strong><span>Similarity {Number(match.similarity).toFixed(3)}</span><p>{match.content}</p></article>)}</div>}
+    </section>
+
+    <section className="panel">
       <h2>Your documents</h2>
       <p className="muted">RLS restricts this list and its chunks to the authenticated owner.</p>
       {!documents?.length ? <div className="empty">No documents yet.</div> :
